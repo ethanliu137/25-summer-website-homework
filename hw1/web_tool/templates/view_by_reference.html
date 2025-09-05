@@ -1,0 +1,162 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>View by Reference</title>
+
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.0.2/css/buttons.dataTables.min.css">
+
+  <!-- 套用與 Perfect Table 相同的主題 -->
+  <link rel="stylesheet" href="{% static 'web_tool/css/Perfect_Table_style.css' %}">
+
+  <!-- 需要時才顯示橫向卷軸的微修（避免幽靈捲軸） -->
+  <style>
+    .dataTables_scrollHeadInner, .dataTables_scrollHeadInner table { width: 100% !important; }
+
+    /* 小膠囊風格的連結按鈕 */
+    .detail-link {
+      display: block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      text-decoration: none;
+      border: 2px solid #1874ff;
+      background: #1874ff;
+      color: #ffffff;
+      font-family: "font1", Arial, sans-serif;
+      font-size: 14px;
+      transition: transform .7s ease-in-out;
+      white-space: nowrap;
+    }
+    .detail-link:hover {
+      border: 2px solid #0c3c69;
+      background: #0c3c69;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <h1 class="title">
+      <a href="/">MME Web Tool</a>
+    </h1>
+  </div>
+  <h2 class="logo">View by Reference</h2>
+
+  <div class="page-center">
+    <div id="multiSearchBar" style="margin:10px 0 16px; display:flex; flex-direction:column; gap:10px;">
+      <div class="search-bar">
+        <input id="multiSearchInput" class="search-input" placeholder="Enter Human_protein">
+      </div>
+      <div class="search-btns">
+        <button id="multiSearchBtn" class="search-btn">search</button>
+        <button id="clearSearchBtn" class="search-btn">delete</button>
+      </div>
+    </div>
+
+    <div id="resultArea">
+      <table id="resultsTable" class="display" style="width:100%"></table>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.2/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.html5.min.js"></script>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const $table = $('#resultsTable');
+
+    // 允許用 URL 參數帶條件：/view-by-reference/?id=O95218&limit=5000
+    const urlParams = new URLSearchParams(location.search);
+    const id    = (urlParams.get('id')    || '').trim();
+    const limit = (urlParams.get('limit') || '5000').trim(); // 想全量可移除此參數
+    
+    async function fetchData() {
+      const params = new URLSearchParams();
+      if (id)    params.set('id', id);
+      if (limit) params.set('limit', limit);
+      const res = await fetch("{% url 'View_by_Reference_data' %}?" + params.toString(), { cache: 'no-store' });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    try {
+      const payload = await fetchData();
+      const data = payload.data || [];
+      const colsFromApi = payload.columns || [];
+
+      // 動態找出 hit_human_protein_id 欄位 index（若找不到則預設 0）
+      const idIdx = Math.max(0, colsFromApi.indexOf('hit_human_protein_id'));
+
+      // 原本 API 回來的欄位
+      const baseCols = colsFromApi.map((c, i) => ({ title: c, data: i }));
+
+      // ✅ 在最前面插入「Detail」欄（超連結）
+      // 站內範例：/View_by_Reference/?id=XXXX
+      // 外站範例（UniProt）：https://www.uniprot.org/uniprotkb/XXXX
+      const cols = [
+        {
+          title: 'Detail',
+          data: idIdx,
+          orderable: false,
+          searchable: false,
+          render: function (idValue) {
+            if (!idValue) return '';
+            // 改這行 href 即可指定你的目標頁
+            return `<a class="detail-link" href="/View_by_Reference/detail/?id=${encodeURIComponent(idValue)}" target="_blank" rel="noopener">Show Detail</a>`;
+            // 外站：
+            // return `<a class="detail-link" href="https://www.uniprot.org/uniprotkb/${encodeURIComponent(idValue)}" target="_blank" rel="noopener">UniProt</a>`;
+          }
+        },
+        ...baseCols
+      ];
+
+      const dt = $table.DataTable({
+        data,
+        columns: cols,
+        searching: true,
+        ordering: true,
+        stateSave: true,
+        stateDuration: 0,
+        pageLength: 10,
+        lengthMenu: [10, 25, 50, 100],
+        responsive: true,
+        autoWidth: false,
+        deferRender: true,        // 夠寬不出現橫向卷軸；需要時才顯示
+        scrollX: true,
+        scrollCollapse: true,
+        dom: 'Bfrtip',            // f = 右上角搜尋欄
+        buttons: ['csv'],
+        initComplete: function () {
+          this.api().columns.adjust();
+        }
+      });
+
+      // 視窗調整時重新計算欄寬，避免多出橫向卷軸
+      let timer = null;
+      window.addEventListener('resize', () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => dt.columns.adjust(), 120);
+      });
+    } catch (e) {
+      alert('載入失敗：' + (e.message || e));
+    }
+  });
+  document.addEventListener('DOMContentLoaded', function () {
+    const opts = {
+      pageLength: 10,
+      lengthMenu: [10, 25, 50, 100],
+      dom: 'Bfrtip',
+      buttons: [{ extend: 'csvHtml5', title: null, text: 'Download CSV' }]
+    };
+    if (document.getElementById('tblProofed')) new DataTable('#tblProofed', opts);
+    if (document.getElementById('tblOverlap')) new DataTable('#tblOverlap', opts);
+    if (document.getElementById('tblResult'))  new DataTable('#tblResult',  opts);
+  });
+  </script>
+</body>
+</html>

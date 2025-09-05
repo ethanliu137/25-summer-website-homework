@@ -1,0 +1,24 @@
+{% load static %}
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MME Web Tool</title>
+</head>
+<body>
+  <h1>MME Web Tool</h1>
+
+  <form action="{% url 'mme_form' %}" method="post">
+    {% csrf_token %}
+    <p>Enter K-mer:</p>
+    <input type="number" name="k_mer" id="K-mer" min="1" step="1" required>
+    <button type="submit">Start search</button>
+  </form>
+
+  <!-- 下載 human 參考 FASTA（放在 static/web_tool/ref/ 底下） -->
+  <p>
+    human (20,663 proteins from UniProt)
+    <a href="{% static 'web_tool/ref/human_uniprot_20663.fasta' %}" download>Download Source</a>
+  </p>
+</body>
+</html>

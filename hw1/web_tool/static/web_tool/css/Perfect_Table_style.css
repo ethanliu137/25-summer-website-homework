@@ -1,0 +1,284 @@
+@font-face {
+  font-family: "font1";
+  src: url("../fonts/Ubuntu-Medium.ttf")   format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+html, body {
+    margin: 0;
+    padding: 0;
+}
+body {
+    background-color: #22293C;
+    font-family: "font1";
+}
+h1.title {
+    display: flex;
+    justify-content: center; /* 水平置中內容 */
+    align-items: center;     /* 垂直置中內容 */
+    font-size: 40px;
+    color: #FF9E1B;
+    margin: 20px 0 0;
+    font-family: "font1";
+}
+h1 a {
+  text-decoration: none;   /* 去掉底線 */
+  color: inherit;          /* 跟著 h1 的顏色 */
+}
+h1 a:hover {
+  cursor: pointer;         /* 滑鼠變手指 */
+}
+.page-center{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:16px;
+  min-height:80vh;
+  padding:20px 0;
+}
+.logo {
+  text-align: center;            /* 水平置中 */
+  font-size: 48px;
+  font-weight: 900;
+  background: linear-gradient(90deg, #5cf8f8 0%, #5cf8f8 40%, #dd76ff 60%, #dd76ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 20px auto;              /* 與上方保留距離 + 置中 */
+}
+
+.logo span {
+  background: linear-gradient(200deg, #FF4FF9, #8B32E5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ===== search button =====*/
+.search-input{
+  width: 1000px;;
+  padding: 20px;
+  border-radius:20px;
+  background-color: #cccccc;
+  border: 0px solid transparent !important;
+  display:flex;
+  justify-content:center;
+  font-size: 20px;
+  border-color: #22293C;
+}
+.search-input:hover{
+  background-color: #464646;
+  color: #ffffff;
+  box-shadow: 0 0 6px #f77d03;
+}
+.search-input::placeholder{
+  font-family: "font1";
+}
+.search-input:focus{
+  background-color: #464646;
+  color: #fff;
+  caret-color: #fff;
+  box-shadow: 0 0 6px #f77d03;
+  border-color: transparent;
+  outline: none;
+}
+.search-input:focus::placeholder{
+  color: #c7c7c7;
+}
+.search-input:focus-visible{
+  box-shadow: 0 0 0 3px rgba(247,125,3,.35);
+}
+.search-btns{
+  display:flex; 
+  justify-content:center;
+  gap: 15px;
+}
+.search-btn {
+  background-color: #ff6600;
+  color: #fff;
+  border: 0;
+  font-size: 18px;
+  font-family: "font1";
+  border-radius: 50px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, transform 0.02s ease-in-out;
+}
+.search-btn:hover {
+  background-color: #ff8d41;
+  transform: translateY(-1px);
+}
+
+/* 小螢幕自動變單欄 */
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes spin { 0% {transform: rotate(0)} 100% {transform: rotate(360deg)} }
+/* ====== 外層容器 ====== */
+#resultArea {
+  background-color: #cccccc;
+  max-width: 1400px;
+  margin: 20px auto 0 auto;  /* 上 20px、左右置中 */
+  padding: 20px;
+  border-radius: 40px;
+  overflow: visible;
+}
+/* ====== 表格 ====== */
+#resultArea table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "font1";
+  font-size: 16px;
+  text-align: center;
+  color: #ececec;
+  margin-left: 1px;
+}
+/* 表頭 */
+#resultArea thead {
+  background-color: #ff7f27;
+  color: rgb(0, 0, 0);
+}
+#resultArea thead th {
+  text-align: left !important;
+  justify-content: left !important;
+  margin-left: 2px;
+  padding-right: 30px;
+  padding-left: 3px;
+  border-bottom: 3px solid #e0661f;
+}
+/* 第一欄修正 */
+#resultArea td:first-child,
+#resultArea th:first-child {
+  background-color: transparent !important;
+  font-weight: normal;
+}
+#resultArea tbody tr:hover td:first-child {
+  background-color: #ffe2cc !important; /* 跟整列一致 */
+}
+/* 表格內容 */
+#resultArea tbody td {
+  padding: 5px;
+  color: #2a2a2a;
+  border-bottom: 1px solid #f1c5a8;
+}
+/* hover 整列 */
+#resultArea tbody tr:hover {
+  background-color: #ffe2cc;
+}
+
+/* ====== DataTables 元件 ====== */
+
+/* 分頁按鈕 */
+.dt-paging {
+  display: flex;
+  justify-content: center;  /* 水平置中 */
+  gap: 6px;                 /* 按鈕間距 */
+  margin-top: 10px;
+}
+.dt-paging .dt-paging-button {
+  background-color: #F77D03 !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 5px !important;
+  padding: 6px 12px !important;
+  margin: 2px !important;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.02s ease-in-out;
+  box-shadow: none !important;
+}
+/* hover */
+.dt-paging .dt-paging-button:hover {
+  background-color: #e0661f !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+/* 當前頁 */
+.dt-paging .dt-paging-button.current {
+  background-color: #cc5500 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+/* disabled 狀態 */
+.dt-paging .dt-paging-button.disabled {
+  background-color: #f5c9a6 !important;
+  color: #fff !important;
+  cursor: not-allowed !important;
+  opacity: 0.7 !important;
+  box-shadow: none !important;
+}
+/* Search bar 標籤 */
+.dt-container .dt-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.dt-container .dt-search label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600 !important;
+  color: #ff6600 !important;
+  font-family: "font1", Arial, sans-serif !important;
+  font-size: 15px !important;
+  margin-bottom: 8px;
+}
+/* --- v2：Search 輸入框 --- */
+.dt-container .dt-search input.dt-input {
+  border: 2px solid #ff6600 !important;
+  border-radius: 25px !important;   /* 膠囊圓角 */
+  padding: 6px 14px !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: #fff !important;
+  color: #222 !important;
+  font-size: 14px !important;
+  transition: border-color .2s ease, box-shadow .2s ease;
+  margin-bottom: 15px;
+}
+.dt-container .dt-search input.dt-input:hover {
+  border-color: #ff9d5c !important;
+}
+.dt-container .dt-search input.dt-input:focus {
+  border-color: #ff9d5c !important;
+  box-shadow: 0 0 6px rgba(255,127,39,.45) !important;
+}
+/* 下方 info 行 */
+#resultArea .dataTables_info,
+#resultArea .dt-info {
+  margin-top: 15px;
+  color: #3f3f3f !important;
+  font-weight: 600 !important;
+  font-family: "font1" !important;
+}
+#resultsTable td {
+  padding: 15px 10px !important;
+}
+/* ====== 匯出按鈕 (CSV) ====== */
+.dt-buttons {
+  display: flex;
+  justify-content: flex-end;  /* 靠右 */
+  gap: 15px;                  /* 每個按鈕間隔 */
+}
+.dt-button {
+  background-color: #ff7f27 !important;
+  color: #fff !important;
+  font-family: "font1", Arial, sans-serif;
+  border: none !important;
+  border-radius: 10px !important;
+  padding: 6px 14px !important;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease-in-out, transform 0.02s ease-in-out;
+}
+.dt-button:hover {
+  background-color: #e0661f !important;
+}
+.dt-button:active {
+  background-color: #cc5500 !important;
+  transform: translateY(0);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.25);
+}

@@ -1,0 +1,129 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>Perfect Match Analysis</title>
+
+  <link rel="stylesheet" href="{% static 'web_tool/style.css' %}">
+  <link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.0.2/css/buttons.dataTables.min.css">
+</head>
+<body>
+  <div id="tilte-block">
+    <h1 id="title-block">
+      <a href="/" class="center">MME Web Tool</a>
+      <a href="job_id_search/" class="btn-border" target="_blank" rel="noopener noreferrer">
+        View Result
+      </a>
+    </h1>
+  </div>
+
+  <div class="page-center">
+    <div class="block">
+      <p class="logo">Perfect Match Finder</p>
+
+      <form id="pmf-form" action="{% url 'mme_form' %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <p class="prompt">Paste your query FASTA sequence below: </p>
+
+        <textarea class="b_text1" id="query_fasta" name="query_fasta"
+                  rows="10" cols="60" placeholder=">sp|P0DTC2|SPIKE_SARS2 Spike..."></textarea>
+
+        <div class="upload-area" id="uploadArea">
+          <p class="upload-text">Upload a FASTA file</p>
+          <button class="upload-btn" type="button" onclick="document.getElementById('fileInput').click()">
+            Select file
+          </button>
+          <input type="file" id="fileInput" class="file-input" name="query_fasta" accept=".fasta,.fa">
+        </div>
+
+        <div class="form-grid">
+          <!-- 左：species -->
+          <div class="species">
+            <p class="prompt">Select Reference Species for Comparison: </p>
+            <label>
+              <input type="radio" name="species" value="human" class="select_te">
+              <span class="sub-text">human (20,663 proteins)</span>
+              <a href="{% static 'web_tool/ref/human_uniprot_20663.fasta' %}" download class="download-btn">
+                Download Source
+              </a>
+            </label>
+          </div>
+
+          <!-- 右：K-mer -->
+          <div class="kmer">
+            <p class="prompt">Enter K-mer (minimum match length): </p>
+            <input type="number" id="K-mer" name="k_mer" class="textK-input" min="1" step="1" placeholder="K-mer...">
+          </div>
+
+          <!-- 下：Email -->
+          <div class="email full">
+            <input type="email" id="Email" name="email" class="email-input" placeholder="Email address">
+          </div>
+        </div>
+      </form>
+
+      <div class="btn-wrapper">
+        <button type="button" class="submit-btn" id="ajax-btn">Start search</button>
+      </div>
+
+      <div id="spinner" style="display:none; text-align:center; margin:12px 0;">
+        <div class="loader"></div>
+        <p id="timer">已經過 0 秒</p>
+      </div>
+      <div id="jobBox" style="display:none; text-align:center; margin:16px 0;">
+        <span style="font-weight:600;">Your Job ID: </span>
+        <span id="jobId"></span>
+      </div>
+      <div id="extraLinks" style="display:none; margin:15px 0; text-align:center;">
+        <a href="{% url 'View_Perfect_Match_Table' %}" target="_blank" rel="noopener noreferrer">
+          View Perfect Match Table
+        </a>
+        <a href="{% url 'View_by_Reference' %}" target="_blank" rel="noopener noreferrer">
+          View by Reference
+        </a>
+        <a href="{% url 'View_by_Eptiope' %}" target="_blank" rel="noopener noreferrer">
+          View by Eptiope
+        </a>
+        <a href="{% url 'View_by_Query' %}" target="_blank" rel="noopener noreferrer">
+          View by Query
+        </a>
+      </div>
+
+      <div id="resultArea" style="max-width:1200px;margin:20px auto;">
+        <table id="resultsTable" class="display" style="width:100%"></table>
+      </div>
+    </div>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.2/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.html5.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.print.min.js"></script>
+  <script src="{% static 'web_tool/main.js' %}"></script>
+  <script>
+    // 簡化版：不自動創建 Job ID，讓 main.js 處理
+    (function () {
+      function hideJobBox() {
+        const box = document.getElementById('jobBox');
+        if (box) box.style.display = 'none';
+      }
+
+      // 頁面載入時隱藏 Job ID
+      function boot() {
+        hideJobBox();
+        // 清除舊的 localStorage
+        localStorage.removeItem('jobShortId');
+        localStorage.removeItem('jobUuid');
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+      } else {
+        boot();
+      }
+    })();
+  </script>
+</body>
+</html>

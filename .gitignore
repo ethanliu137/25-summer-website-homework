@@ -1,0 +1,13 @@
+﻿# 大檔與本機資料
+*.sqlite3
+*-wal
+*-shm
+*.csv
+*.tsv
+
+# Python / VSCode
+__pycache__/
+*.pyc
+.venv/
+.env
+.vscode/

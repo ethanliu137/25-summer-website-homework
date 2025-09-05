@@ -1,0 +1,80 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>Search by Job ID</title>
+  <link rel="stylesheet" href="{% static 'web_tool/css/Job_ID_style.css' %}">
+</head>
+<body>
+  <header id="title-block">
+    <h1 class="title">
+      <a href="/">MME Web Tool</a>
+    </h1>
+  </header>
+
+  <main class="wrap">
+    <h2 class="search-title">Enter your Job ID</h2>
+
+    <div class="search-bar-full">
+      <input id="jobInput" class="search-bar-input" placeholder="Enter your job ID..." />
+      <button id="searchBtn" class="search-bar-btn">Search</button>
+    </div>
+
+    <!-- 搜尋後才顯示 -->
+    <section id="resultPanel" aria-live="polite">
+      <div class="id-line">
+        <span class="your-id">Your Job ID:</span>
+        <span id="jobIdLink" class="job-id" rel="nofollow noopener"></span>
+      </div>
+
+      <nav class="link-row">
+        <a id="lnkPerfect"  class="pill pill-orange" href="#" target="_blank" rel="noopener noreferrer">View Perfect Match Result</a>
+        <a id="lnkRef"      class="pill pill-blue"   href="#" target="_blank" rel="noopener noreferrer">View by Reference</a>
+        <a id="lnkEpitope"  class="pill pill-green"  href="#" target="_blank" rel="noopener noreferrer">View by Epitope</a>
+        <a id="lnkQuery"    class="pill pill-cyan"   href="#" target="_blank" rel="noopener noreferrer">View by Query</a>
+      </nav>
+    </section>
+  </main>
+
+  <!-- 最小 JS：處理搜尋與顯示；保持在 HTML 檔內 -->
+  <script>
+    (function () {
+      const input = document.getElementById('jobInput');
+      const btn   = document.getElementById('searchBtn');
+      const panel = document.getElementById('resultPanel');
+      const jobA  = document.getElementById('jobIdLink');
+
+      const lnkPerfect = document.getElementById('lnkPerfect');
+      const lnkRef     = document.getElementById('lnkRef');
+      const lnkEpi     = document.getElementById('lnkEpitope');
+      const lnkQuery   = document.getElementById('lnkQuery');
+
+      function applyJobId(id){
+        const jid = (id || '').trim();
+        if (!jid) return;
+        // 顯示 ID （可點）
+        jobA.textContent = jid;
+        jobA.href = '?job_id=' + encodeURIComponent(jid); // 保留在本頁可複製
+
+        // 四個分頁帶上 job_id
+        lnkPerfect.href = "{% url 'View_Perfect_Match_Table' %}" + "?job_id=" + encodeURIComponent(jid);
+        lnkRef.href     = "{% url 'View_by_Reference' %}"       + "?job_id=" + encodeURIComponent(jid);
+        lnkEpi.href     = "{% url 'View_by_Eptiope' %}"          + "?job_id=" + encodeURIComponent(jid);
+        lnkQuery.href   = "{% url 'View_by_Query' %}"            + "?job_id=" + encodeURIComponent(jid);
+
+        panel.style.display = 'block';
+      }
+
+      // 支援 URL 上直接帶 ?job_id=xxx
+      const urlJob = new URLSearchParams(location.search).get('job_id');
+      if (urlJob){ input.value = urlJob; applyJobId(urlJob); }
+
+      btn.addEventListener('click', () => applyJobId(input.value));
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); applyJobId(input.value); }
+      });
+    })();
+  </script>
+</body>
+</html>

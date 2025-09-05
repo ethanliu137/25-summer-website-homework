@@ -1,0 +1,634 @@
+{% load static %}
+{% load dict_extras %}
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>Human Protein Detail - {{ hp_id }}</title>
+
+  <link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.0.2/css/buttons.dataTables.min.css">
+  <link rel="stylesheet" href="{% static 'web_tool/css/ref_detail.css' %}">
+</head>
+<body>
+  <div>
+    <h1 class="title"><a href="/">MME Web Tool</a></h1>
+  </div>
+  <h2 class="logo">Human Protein Detail</h2>
+  <div class="result-wrapper">
+      <!-- 表 1：Human Protein Info -->
+      <h2 class="Filter-topic">Human Protein Info</h2>
+      <div class="info-block">
+        <table class="info-block" style="width:100%">
+          <thead>
+            <tr>
+              <th>Human Protein (UniProt)</th>
+              <th>Human Protein Name</th>
+              <th>Human Gene (HGNC)</th>
+              <th>Ensembl ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{ basic_info.Uniprot_protein }}</td>
+              <td>{{ basic_info.Gene_description }}</td>
+              <td>{{ basic_info.Gene_HGNC }}</td>
+              <td>{{ basic_info.Ensembl }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+  </div>
+  <div class="result-wrapper">
+    <h2 class="Secondary-Filter-topic">Result & Secondary Filter</h2>
+
+    <!-- 表 2：Proofed -->
+    <div class="section">
+      <h3 class="result-topic">IEDB proofed Epitope in Human Protein: {{ hp_id }}</h3>
+      <table id="tblProofed" class="display" style="width:100%">
+        <thead>
+          <tr>
+            {% for c in columns %}<th>{{ c }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            {% for c in columns %}<td>{{ r|get_item:c }}</td>{% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 表 3：IEDB overlaped perfect match Epitope -->
+      <div class="section">
+        <h3 class="result-topic">IEDB overlapped perfect match Epitope</h3>
+        <table id="tblOverlap" class="display" style="width:100%">
+          <thead>
+            <tr>
+              {% for c in overlap_columns %}<th>{{ c }}</th>{% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% if overlap_rows %}
+              {% for r in overlap_rows %}
+              <tr>
+                {% for c in overlap_columns %}
+                  <td>{{ r|get_item:c }}</td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="{{ overlap_columns|length }}">No data available in table</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+      <!-- 表 4：Result Table -->
+      <div class="section">
+        <h3 class="result-topic">Result Table</h3>
+        <table id="tblResult" class="display" style="width:100%">
+          <thead>
+            <tr>
+              <th>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                  <input type="checkbox" id="selectAll"> 
+                  <span>Select All</span>
+                </label>
+              </th>
+              <th>query_protein_name</th>
+              <th>epitope_count</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in result_rows %}
+            <tr>
+              <td><input type="checkbox" class="rowCheck"></td>
+              <td>{{ r.query_protein_name }}</td>
+              <td>{{ r.epitope_count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <!-- 三個篩選 -->
+       <div class="bar">
+          <label class="switch">
+            <input type="checkbox" id="kmerToggle">
+            <span class="slider"></span>
+          </label>
+          <div class="secondary-filter-block">
+            <h3 class="kmer-title">Select The length of Perfect Match Epitope</h3>
+            <div id="kmer-filters" hidden></div>
+          </div>
+        </div>
+
+        <div class="bar">
+          <label class="switch">
+            <input type="checkbox" id="refToggle">
+            <span class="slider"></span>
+          </label>
+          <div class="secondary-filter-block">
+            <h3 class="kmer-title">Epitope Unique in Reference Protein</h3>
+            <div id="Reference-filters" hidden></div>
+          </div>
+        </div>
+
+        <div class="bar">
+          <label class="switch">
+            <input type="checkbox" id="EvidenceToggle">
+            <span class="slider"></span>
+          </label>
+          <div class="secondary-filter-block">
+            <h3 class="kmer-title">Select Evidence Strength</h3>
+            <div id="Strength-filters" hidden></div>
+          </div>
+        </div>
+
+      <button id="applyKmerBtn" type="button" class="summit-btn">Summit</button>
+    </div>
+
+    <!-- 表 5：Epitope Plot Detail -->
+    <div class="result-wrapper">
+      <h3 class="Secondary-Filter-topic">Secondary Filter Result</h3>
+      <div class="section">
+        <div class="plot-header">
+          <h3 class="result-topic">Epitope Plot</h3>
+          <button id="toggleOverlapOnly" type="button" class="outline-btn" aria-pressed="false">
+            Overlap only: OFF
+          </button>
+        </div>
+        <div id="epitope-plot"></div>
+      </div>
+
+      <div class="section">
+        <h3 class="result-topic">Epitope Plot Detail</h3>
+        <table id="tblEnr" class="display" style="width:100%">
+          <thead>
+            <tr>
+              {% if enr_columns %}
+                {% for c in enr_columns %}<th>{{ c }}</th>{% endfor %}
+              {% else %}
+                <th>No columns</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% if enr_rows %}
+              {% for r in enr_rows %}
+                <tr>
+                  {% for c in enr_columns %}<td>{{ r|get_item:c }}</td>{% endfor %}
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="{{ enr_columns|length|default:1 }}">No data available in table</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.2/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.html5.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const common = {
+        pageLength: 10,
+        lengthChange: false,
+        language: { emptyTable: "No data available in table" },
+        scrollX: true,
+        autoWidth: false
+      };
+
+      const t1 = new DataTable('#tblProofed', common);
+      const t2 = new DataTable('#tblOverlap', common);
+      const t3 = new DataTable('#tblResult',  common);
+      window.t4 = new DataTable('#tblEnr', common);
+
+      const tables = [t1, t2, t3, t4];
+
+      // 初始化後多調幾次以自適應欄寬
+      tables.forEach(t => t.columns.adjust());
+      requestAnimationFrame(() => tables.forEach(t => t.columns.adjust()));
+      requestAnimationFrame(() => tables.forEach(t => t.columns.adjust()));
+
+      // Select All
+      const selectAll = document.getElementById('selectAll');
+      if (selectAll) {
+        selectAll.addEventListener('change', () => {
+          document.querySelectorAll('#tblResult .rowCheck').forEach(cb => cb.checked = selectAll.checked);
+          t3.columns.adjust();
+        });
+      }
+    });
+  </script>
+  
+  {# 保留你原本三個 json_script #}
+  {{ rows|json_script:"proofed-data" }}
+  {{ enr_rows|json_script:"pm-data" }}
+  {{ overlap_rows|json_script:"overlap-data" }}
+
+  <script>
+    (function(){
+      // ---------- 讀資料 & 共同工具 ----------
+      const PROOFED_RAW = JSON.parse(document.getElementById('proofed-data')?.textContent || '[]');
+      const PM_RAW      = JSON.parse(document.getElementById('pm-data')?.textContent      || '[]');
+      const OVERLAP_RAW = JSON.parse(document.getElementById('overlap-data')?.textContent || '[]');
+
+      const normalizeIri = x => x ? String(x).trim().replace(/\/+$/,'').toLowerCase() : null;
+      const findIriKey = (obj) => {
+        const keys = Object.keys(obj || {});
+        // 優先精準命名，其次任何包含 "iri" 的欄位
+        const pref = keys.find(k => /^iedb[\s_]*iri$/i.test(k.replace(/\s+/g,'')));
+        return pref || keys.find(k => /iri/i.test(k));
+      };
+
+      const proofedIriKey = PROOFED_RAW.length ? findIriKey(PROOFED_RAW[0]) : null;
+      const overlapIriKey = OVERLAP_RAW.length ? findIriKey(OVERLAP_RAW[0]) : null;
+
+      // ---------- IEDB（紅條） ----------
+      window.iedbData = PROOFED_RAW
+        .filter(d => d["Starting Position"] != null && d["Ending Position"] != null)
+        .map(d => ({
+          name:  d["Name"] ?? "(unknown)",
+          start: +d["Starting Position"],
+          end:   +d["Ending Position"],
+          iri:   proofedIriKey ? d[proofedIriKey] : (d.iri ?? d["IEDB_IRI"] ?? d["IEDB IRI"] ?? null)
+        }));
+
+      // 去重 + 標準化 IRI
+      (function dedupeAndNormalize(){
+        const seen = new Set();
+        window.iedbData = window.iedbData.reduce((acc, d) => {
+          const key = `${d.name}|${d.start}|${d.end}`;
+          if (seen.has(key)) return acc;
+          seen.add(key);
+          acc.push({...d, iriNorm: normalizeIri(d.iri)});
+          return acc;
+        }, []);
+      })();
+
+      // ---------- ENR（黑條） ----------
+      window.enrRows = PM_RAW.map(d => ({
+        ...d,
+        mme_hit__start:   d.mme_hit__start   != null ? +d.mme_hit__start   : null,
+        mme_hit__end:     d.mme_hit__end     != null ? +d.mme_hit__end     : null,
+        mme_query__start: d.mme_query__start != null ? +d.mme_query__start : null,
+        mme_query__end:   d.mme_query__end   != null ? +d.mme_query__end   : null,
+      }));
+
+      // ---------- 從表三做 IRI 集合 ----------
+      function toIriList(v){
+        if (!v) return [];
+        if (Array.isArray(v)) return v;
+        return String(v).split(/[,\s;]+/);
+      }
+      window.overlapIriSet = new Set(
+        [].concat(...OVERLAP_RAW.map(r =>
+          toIriList(overlapIriKey ? r[overlapIriKey] : (r.IEDB_IRI ?? r["IEDB IRI"] ?? r.iri))
+            .map(normalizeIri)
+        )).filter(Boolean)
+      );
+
+      // ---------- k-mer UI & 篩選 ----------
+      const KMER_CHOICES = [
+        {label:"6 mer",   key:"6",   test:L=>L===6},
+        {label:"7 mer",   key:"7",   test:L=>L===7},
+        {label:"8 mer",   key:"8",   test:L=>L===8},
+        {label:"9 mer",   key:"9",   test:L=>L===9},
+        {label:"≥ 10 mer",key:"10+", test:L=>L>=10},
+      ];
+      let selectedKmers = new Set(KMER_CHOICES.map(d=>d.key)); // 預設全選
+
+      function buildKmerPills(){
+        const wrap = d3.select('#kmer-filters');
+        const items = wrap.selectAll('label.kmer-pill')
+          .data(KMER_CHOICES)
+          .join('label')
+          .attr('class','kmer-pill');
+
+        items.html(null);
+        items.each(function(d){
+          const lab = d3.select(this);
+          lab.append('input')
+            .attr('type','checkbox')
+            .attr('value', d.key)
+            .property('checked', selectedKmers.has(d.key))
+            .on('change', function(){
+              if (this.checked) selectedKmers.add(d.key);
+              else {
+                selectedKmers.delete(d.key);
+                if (selectedKmers.size === 0) { this.checked = true; selectedKmers.add(d.key); }
+              }
+            });
+          lab.append('span').text(d.label);
+        });
+      }
+
+      (function initKmerToggle(){
+        const toggle = document.getElementById('kmerToggle');
+        const panel  = document.getElementById('kmer-filters');
+        if (!toggle || !panel) return;
+        toggle.checked = false;     // 預設關閉
+        panel.hidden   = true;
+        toggle.addEventListener('change', () => { panel.hidden = !toggle.checked; });
+      })();
+
+      function kmerLengthFromENR(row){
+        const s=row.mme_hit__start, e=row.mme_hit__end;
+        if (s==null || e==null) return -Infinity;
+        return e - s + 1;
+      }
+      function filterENRByKmer(rows){
+        return (rows||[]).filter(r=>{
+          const L = kmerLengthFromENR(r);
+          for (const opt of KMER_CHOICES){
+            if (selectedKmers.has(opt.key) && opt.test(L)) return true;
+          }
+          return false;
+        });
+      }
+
+      // ---------- REF UI & 篩選 ----------
+      const REF_CHOICES = [{ label: "human protein", key: "human_protein" }];
+      let selectedRefs = new Set(["human_protein"]);
+
+      function buildRefPills() {
+          const wrap = d3.select("#Reference-filters");
+          if (wrap.empty()) return;
+
+          const items = wrap.selectAll("label.kmer-pill")
+            .data(REF_CHOICES, d => d.key)
+            .join("label")
+            .attr("class", "kmer-pill");
+
+          items.html(null);
+          items.each(function(d){
+            const lab = d3.select(this);
+            lab.append("input")
+              .attr("type", "checkbox")
+              .attr("value", d.key)
+              .property("checked", selectedRefs.has(d.key))
+              .on("change", function(){
+                if (this.checked) selectedRefs.add(d.key);
+                else selectedRefs.delete(d.key);
+              });
+            lab.append("span").text(d.label);
+          });
+        }
+
+      (function initRefToggle(){
+          const toggle = document.getElementById("refToggle");
+          const panel  = document.getElementById("Reference-filters");
+          if (!toggle || !panel) return;
+
+          // 先建出選項
+          buildRefPills();
+
+          // 同步顯示狀態
+          panel.hidden = !toggle.checked;
+
+          // 切換顯示/隱藏
+          toggle.addEventListener("change", () => {
+            panel.hidden = !toggle.checked;
+          });
+        })();
+      
+      // ---------- Evidence UI & 篩選 ----------
+      const Evidence_CHOICES = [
+        { label: "strong", key: "strong_connect" },
+        { label: "weak",   key: "weak_connect"   },
+        { label: "none",   key: "none_protein"   },
+      ];
+
+      function buildEvidencePills() {
+        const wrap = d3.select("#Strength-filters");
+        if (wrap.empty()) return;
+
+        const items = wrap.selectAll("label.kmer-pill")
+          .data(Evidence_CHOICES, d => d.key)
+          .join("label")
+          .attr("class", "kmer-pill");
+
+        items.html(null);
+        items.each(function(d) {
+          const lab = d3.select(this);
+          lab.append("input")
+            .attr("type", "checkbox")
+            .attr("value", d.key);
+          lab.append("span").text(d.label);
+        });
+      }
+
+      buildEvidencePills();
+
+      // ---------- Overlap only（獨立事件） ----------
+      let overlapOnly = false;
+      let currentPerfectRows = [];
+
+      function filterIedbByOverlapIri(iedbList, iriSet){
+        if (!overlapOnly) return iedbList || [];
+        if (!iriSet || iriSet.size === 0) return []; // 表三沒 IRI 就空
+        return (iedbList || []).filter(d => d.iriNorm && iriSet.has(d.iriNorm));
+      }
+      function rowOverlapsAllowedIedb(row, allowedIedb){
+        const s=row.mme_hit__start, e=row.mme_hit__end;
+        if (s==null || e==null) return false;
+        return (allowedIedb||[]).some(ie => s <= ie.end && e >= ie.start);
+      }
+
+      // ---------- 畫圖 & 表格 ----------
+      // 如你頁面已經定義 renderEpitopePlot，這裡就不覆蓋
+      if (typeof renderEpitopePlot !== 'function'){
+        window.renderEpitopePlot = function(iedbList, perfectForPlot){
+          const container = d3.select("#epitope-plot");
+          container.selectAll("*").remove();
+
+          const W = Math.min(1000, container.node().clientWidth || 1000);
+          const H = 360;
+          const margin = { top: 20, right: 24, bottom: 40, left: 40 };
+          const innerW = W - margin.left - margin.right;
+          const innerH = H - margin.top - margin.bottom;
+
+          const svg = container.append("svg").attr("width", W).attr("height", H);
+          const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+          const maxPos = d3.max([
+            d3.max(iedbList, d => d.end) || 0,
+            d3.max(perfectForPlot, d => d.end) || 0
+          ]) || 0;
+
+          const x = d3.scaleLinear().domain([0, maxPos * 1.02]).range([0, innerW]);
+
+          // 不重疊堆疊（IEDB）
+          const sorted = [...(iedbList||[])].sort((a,b)=>a.start-b.start);
+          const levelEnds = [];
+          sorted.forEach(d=>{
+            let i = levelEnds.findIndex(e => d.start > e);
+            if (i === -1) { i = levelEnds.length; levelEnds.push(d.end); }
+            else { levelEnds[i] = d.end; }
+            d.level = i;
+          });
+
+          const barH = 12, barGap = 4;
+          const baselineY = innerH - 30;
+
+          g.append("line")
+            .attr("x1", 0).attr("x2", innerW)
+            .attr("y1", baselineY).attr("y2", baselineY)
+            .attr("stroke", "#333").attr("stroke-width", 4);
+
+          // IEDB（上方）
+          g.append("g").selectAll("rect")
+            .data(sorted).enter().append("rect")
+            .attr("x", d => x(d.start))
+            .attr("y", d => baselineY - (d.level + 1) * (barH + barGap))
+            .attr("width", d => Math.max(1, x(d.end) - x(d.start)))
+            .attr("height", barH)
+            .attr("fill", "#e74c3c").attr("stroke", "#b03a2e").attr("rx",2).attr("ry",2)
+            .on("mousemove", function (event, d) {
+              d3.select(this).attr("stroke-width", 2);
+              const link = d.iri ? `<div><a href="${d.iri}" target="_blank" rel="noopener">IEDB IRI</a></div>` : "";
+              tooltip.style("opacity", 1)
+                .html(`<div><b>IEDB</b>: ${d.name}</div><div>Pos: ${d.start}–${d.end}</div>`)
+                .style("left", (event.pageX + 12) + "px")
+                .style("top",  (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function () {
+              d3.select(this).attr("stroke-width", 1);
+              tooltip.style("opacity", 0);
+            });
+
+          // Perfect Match（基線下）
+          const pmY = baselineY + barGap + 2;
+          g.append("g").selectAll("rect")
+            .data(perfectForPlot || []).enter().append("rect")
+            .attr("x", d => x(d.start))
+            .attr("y", pmY)
+            .attr("width", d => Math.max(1, x(d.end) - x(d.start)))
+            .attr("height", barH)
+            .attr("fill", "#1c1c1c").attr("stroke", "#000").attr("rx",2).attr("ry",2)
+            .on("mousemove", function (event, d) {
+              d3.select(this).attr("stroke-width", 2);
+              const link = d.iri ? `<div><a href="${d.iri}" target="_blank" rel="noopener">IEDB IRI</a></div>` : "";
+              tooltip.style("opacity", 1)
+                .html(`<div><b>IEDB</b>: ${d.name}</div><div>Pos: ${d.start}–${d.end}</div>`)
+                .style("left", (event.pageX + 12) + "px")
+                .style("top",  (event.pageY - 28) + "px");
+            })
+            .on("mouseout", function () {
+              d3.select(this).attr("stroke-width", 1);
+              tooltip.style("opacity", 0);
+            });
+          
+          g.append("g")
+            .attr("transform", `translate(0, ${innerH - 2})`)
+            .call(d3.axisBottom(x).ticks(10));
+
+          const legend = g.append("g").attr("transform", `translate(${innerW - 160}, 0)`);
+          const items = [{label:"IEDB", color:"#e74c3c"}, {label:"Perfect Match", color:"#1c1c1c"}];
+          const li = legend.selectAll("g").data(items).enter().append("g")
+            .attr("transform", (_, i) => `translate(0, ${i * 20})`);
+          li.append("rect").attr("width",14).attr("height",14).attr("fill", d=>d.color);
+          li.append("text").attr("x",20).attr("y",11).text(d=>d.label).style("font","12px system-ui, sans-serif");
+        };
+
+        // 單例 tooltip
+        const tooltip = d3.select('body').selectAll('.tooltip-epitope').data([0]).join('div')
+          .attr('class', 'tooltip-epitope')
+          .style('position', 'absolute').style('pointer-events', 'none')
+          .style('padding', '6px 8px').style('background', 'rgba(0,0,0,0.8)')
+          .style('color', '#fff').style('border-radius', '6px')
+          .style('font', '12px/1.2 system-ui, sans-serif').style('opacity', 0);
+      }
+
+      function buildPerfectForPlot(enrFiltered){
+        return (enrFiltered||[])
+          .filter(r => r.mme_hit__start != null && r.mme_hit__end != null)
+          .map(r => ({ start: r.mme_hit__start, end: r.mme_hit__end }));
+      }
+
+      function redrawEnrTable(enrFiltered){
+        if (!window.t4) return;
+        const cols = Array.from(document.querySelectorAll('#tblEnr thead th')).map(th => th.textContent.trim());
+        const rows = (enrFiltered||[]).map(r => cols.map(c => (r[c] ?? r[c?.toLowerCase?.()] ?? "")));
+        window.t4.clear().rows.add(rows).draw();
+      }
+
+      // ---------- 單一重繪入口 ----------
+      function applyFilters(){
+        // 1) 先拿目前 Perfect 子集（照你的現有條件來算，之後有 ref/evidence 就加在這裡）
+        const enrByKmer = filterENRByKmer(window.enrRows || []);
+        currentPerfectRows = enrByKmer; // ⭐ 記住現在的「最新狀態」
+
+        // 2) IEDB（紅條）：若 overlapOnly 開，就先依 IRI 集合過濾；否則原樣
+        const iedbForPlot = filterIedbByOverlapIri(window.iedbData || [], window.overlapIriSet);
+
+        if (overlapOnly) {
+          // 3) 只看 overlap：檢查是否有任何交集
+          const overlappedPerfect = (currentPerfectRows || [])
+            .filter(r => rowOverlapsAllowedIedb(r, iedbForPlot));
+
+          const hasOverlap = (iedbForPlot && iedbForPlot.length > 0) &&
+                            (overlappedPerfect && overlappedPerfect.length > 0);
+
+          if (!hasOverlap) {
+            // ⭐ 沒有 overlap → 只留座標軸（空陣列），表格清空
+            renderEpitopePlot([], []);
+            redrawEnrTable([]);
+            return;
+          }
+
+          // 有 overlap → 只畫有交集的部分
+          renderEpitopePlot(iedbForPlot, buildPerfectForPlot(overlappedPerfect));
+          redrawEnrTable(overlappedPerfect);
+          return;
+        }
+
+        // 4) OverlapOnly 關閉 → 正常畫：紅條(依 IRI 規則) + 目前 Perfect 子集
+        renderEpitopePlot(iedbForPlot, buildPerfectForPlot(currentPerfectRows));
+        redrawEnrTable(currentPerfectRows);
+      }
+
+      // ---------- 綁事件 ----------
+      // Summit
+      document.getElementById('applyKmerBtn')?.addEventListener('click', () => {
+        applyFilters();
+      });
+
+      // Overlap only
+      (function bindOverlapBtn(){
+        const btn = document.getElementById('toggleOverlapOnly');
+        if (!btn) return;
+        if (!window.overlapIriSet || window.overlapIriSet.size === 0){
+          btn.disabled = true;
+          btn.title = 'No IEDB_IRI found in table 3';
+        }
+        btn.addEventListener('click', () => {
+          overlapOnly = !overlapOnly;
+          btn.classList.toggle('active', overlapOnly);
+          btn.setAttribute('aria-pressed', String(overlapOnly));
+          btn.textContent = overlapOnly ? 'Overlap only: ON' : 'Overlap only: OFF';
+          applyFilters();
+        });
+      })();
+
+      // ---------- 初始化 ----------
+      buildKmerPills();
+      applyFilters();
+      window.addEventListener('resize', applyFilters);
+    })();
+  </script>
+
+</body>
+</html>

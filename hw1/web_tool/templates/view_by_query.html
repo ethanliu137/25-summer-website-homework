@@ -1,0 +1,151 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>View by Query</title>
+
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.0.2/css/buttons.dataTables.min.css">
+
+  <link rel="stylesheet" href="{% static 'web_tool/css/Perfect_Table_style.css' %}">
+</head>
+<body>
+  <div>
+    <h1 class="title">
+      <a href="/">MME Web Tool</a>
+    </h1>
+  </div>
+  <h2 class="logo">View by Query</h2>
+
+  <div class="page-center">
+    <div id="multiSearchBar" style="margin:10px 0 16px; display:flex; flex-direction:column; gap:10px;">
+      <div class="search-bar">
+        <input id="multiSearchInput" class="search-input" placeholder="Enter query_protein_name">
+      </div>
+      <div class="search-btns">
+        <button id="multiSearchBtn" class="search-btn">search</button>
+        <button id="clearSearchBtn" class="search-btn">delete</button>
+      </div>
+    </div>
+
+    <div id="resultArea">
+      <table id="resultsTable" class="display" style="width:100%"></table>
+    </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.2/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.html5.min.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const $table = $('#resultsTable');
+
+      // 允許用 URL 帶條件，例如 /view-by-query/?q=Spike&limit=5000
+      const urlParams = new URLSearchParams(location.search);
+      const q = (urlParams.get('q') || '').trim();
+      const limit = (urlParams.get('limit') || '5000').trim(); // 想全量可拿掉
+
+      async function fetchData() {
+        const params = new URLSearchParams();
+        if (q) params.set('q', q);
+        if (limit) params.set('limit', limit);
+        const res = await fetch("{% url 'View_by_Query_data' %}?" + params.toString(), { cache: 'no-store' });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      }
+
+      // 工具：逃脫正則、解析多關鍵字、從表頭找欄位索引
+      function escapeRegex(s) {
+        return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+      function parseTokens(raw) {
+        return raw
+          .split(/[\s,，;；\n\r]+/)
+          .map(s => s.trim())
+          .filter(Boolean);
+      }
+      function getColumnIndexByHeaderText(headers, headerText) {
+        const target = headerText.trim().toLowerCase();
+        for (let i = 0; i < headers.length; i++) {
+          if (String(headers[i]).trim().toLowerCase() === target) return i;
+        }
+        return -1;
+      }
+
+      try {
+        const payload = await fetchData();
+        const columns = payload.columns || [];
+        const data = payload.data || [];
+
+        // 初始化 DataTable（拿掉內建全域搜尋框 f）
+        const dt = $table.DataTable({
+          data,
+          columns: columns.map((c, i) => ({ title: c, data: i })),
+          searching: true,
+          ordering: true,
+          stateSave: true,
+          stateDuration: 0,
+          pageLength: 10,
+          lengthMenu: [10, 25, 50, 100],
+          scrollX: true,
+          scrollCollapse: true,
+          autoWidth: false,
+          deferRender: true,
+          responsive: true,
+          dom: 'Bfrtip',         // 自訂搜尋，所以不顯示 DataTables 內建搜尋框
+          buttons: ['csv'],
+          initComplete: function () {
+            this.api().columns.adjust();
+          }
+        });
+
+        // 目標欄位：Epitope（如名稱不同請改這裡）
+        const EPI_COL = getColumnIndexByHeaderText(columns, 'Epitope');
+        if (EPI_COL === -1) {
+          console.warn('找不到名為「Epitope」的欄位，請確認後端 payload.columns 是否含有該欄。');
+        }
+
+        // === 固定「精準比對」的多關鍵字搜尋 ===
+        function applyMultiSearch() {
+          if (EPI_COL === -1) return;
+
+          const raw = document.getElementById('multiSearchInput').value;
+          const tokens = Array.from(new Set(parseTokens(raw))); // 去重
+
+          if (tokens.length === 0) {
+            dt.column(EPI_COL).search('', true, false, true).draw();
+            return;
+          }
+
+          // 精準比對：^(?:A|B|C)$，大小寫不敏感（第4參數設 true）
+          const parts = tokens.map(t => escapeRegex(t));
+          const pattern = `^(?:${parts.join('|')})$`;
+
+          dt.column(EPI_COL).search(pattern, true, false, true).draw();
+        }
+
+        // 綁定事件（Enter、貼上、自訂按鈕）
+        document.getElementById('multiSearchBtn').addEventListener('click', applyMultiSearch);
+        document.getElementById('multiSearchInput').addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); applyMultiSearch(); }
+        });
+        document.getElementById('multiSearchInput').addEventListener('paste', () => {
+          setTimeout(applyMultiSearch, 0);
+        });
+        document.getElementById('clearSearchBtn').addEventListener('click', () => {
+          document.getElementById('multiSearchInput').value = '';
+          dt.column(EPI_COL).search('', true, false, true).draw();
+        });
+
+      } catch (e) {
+        alert('載入失敗：' + (e.message || e));
+      }
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,360 @@
+@font-face {
+  font-family: "font1";
+  src: url("../fonts/Ubuntu-Medium.ttf")   format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+html, body {
+    margin: 0;
+    padding: 0;
+}
+body {
+    background-color: #22293C;
+    font-family: "font1";
+}
+h1.title {
+    display: flex;
+    justify-content: center; /* 水平置中內容 */
+    align-items: center;     /* 垂直置中內容 */
+    font-size: 40px;
+    color: #FF9E1B;
+    margin: 20px 0 0;
+    font-family: "font1";
+}
+h1 a {
+  text-decoration: none;   /* 去掉底線 */
+  color: inherit;          /* 跟著 h1 的顏色 */
+}
+h1 a:hover {
+  cursor: pointer;         /* 滑鼠變手指 */
+}
+.page-center{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:16px;
+  min-height:80vh;
+  padding:20px 0;
+}
+.logo {
+  text-align: center;            /* 水平置中 */
+  font-size: 48px;
+  font-weight: 900;
+  background: linear-gradient(90deg, #5cf8f8 0%, #5cf8f8 40%, #dd76ff 60%, #dd76ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 20px auto;              /* 與上方保留距離 + 置中 */
+}
+
+.logo span {
+  background: linear-gradient(200deg, #FF4FF9, #8B32E5);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ======  Human Protein Info  ====== */
+.Filter-topic{
+  font-family: "font1";
+  text-align: center;
+  color: #6C63FF;
+  margin-bottom: 20px !important;
+  font-size: 40px;
+  margin-top: 20px;
+}
+.info-block{
+  max-width: 1400px;
+  justify-content: center;
+  margin-top: 0px;
+  margin: 0 auto;
+  padding: 0px;
+  overflow: visible;
+  border-collapse: collapse;
+}
+.info-block th,
+.info-block td {
+  border: 1px solid #999;
+  padding: 6px 10px;
+  text-align: center;
+  vertical-align: middle;
+}
+.info-block thead {
+  font-size: 20px;
+  font-weight: normal;
+  background-color: #f2f2f2;
+}
+
+/* ======  Result & Secondary Filter  ====== */
+
+/* block */
+.result-wrapper {
+  background-color: #cccccc;
+  border-radius: 20px;
+  max-width: 1400px;
+  margin: 60px auto;
+  padding: 20px;
+  padding-top: 1px;
+}
+.section{
+  border: 1px solid #000;      /* 原本加在 table 的外框，移到這裡 */
+  border-radius: 12px;
+  margin-top: 15px !important;
+  padding: 12px;               /* 內距也放容器，不放 table */
+  overflow-x: auto;            /* 水平捲軸給容器，不給 table */
+  background: #ccc;            /* 如果需要底色 */
+}
+
+/* ✅ DataTables v2 + scrollX 對齊保護 */
+.dt-container .dt-scroll { overflow-x: auto !important; }
+.dt-container .dt-scroll-headInner,
+.dt-container .dt-scroll-headInner table { width: 100% !important; }
+
+/* ✅ 長字不斷行，避免單格把表撐爆 */
+table.dataTable.nowrap th,
+table.dataTable.nowrap td { white-space: nowrap; }
+
+/* ✅ Human Protein Info 那張若也溢出，把 overflow 設在容器而非 table 本身 */
+.Info-table { display:block; overflow-x:auto; }
+/* title */
+.Secondary-Filter-topic {
+  font-family: "font1";
+  text-align: center;
+  color: #6C63FF;
+  margin-bottom: 30px;
+  font-size: 35px;
+  margin-top: 20px;
+}
+.result-topic {
+  font-family: "font1";
+  text-align: center;
+  font-size: 30px;
+  margin: 0px 0 20px;
+  color: #000000;
+  font-weight: 600;
+}
+/* ======  general result area  ====== */
+/* ✅ 外層容器控制寬度、內距、邊框（捲動交給容器，不給 table） */
+.section {
+  border: 1px solid #000;
+  border-radius: 12px;
+  margin-top: 15px !important;
+  padding: 8px 12px;      /* 精簡 padding，減少誤差 */
+  overflow-x: auto;       /* 水平捲動 */
+  background: #ccc;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 15px;
+}
+
+/* ✅ DataTables v2 scroll 對齊保護 */
+.dt-container .dt-scroll { 
+  overflow-x: auto !important;
+  overflow-y: hidden !important;   /* 避免雙重直向捲軸造成表頭/表身錯位 */
+}
+.dt-container .dt-scroll-headInner,
+.dt-container .dt-scroll-headInner table { width: 100% !important; }
+
+/* ✅ 表格計算寬度更穩定（含 padding/border） */
+table.dataTable,
+table.dataTable thead th,
+table.dataTable tbody td { box-sizing: border-box; }
+
+/* ✅ 表格僅保留格線/hover，不要加 max-width/padding 在 table 外層以外的地方 */
+table.dataTable.display th,
+table.dataTable.display td {
+  border: 1px solid #000;
+  padding: 6px 10px;
+  vertical-align: top;   /* 長文字多行時更好看 */
+}
+table.dataTable.display thead th {
+  background-color: #b7ffa1;
+  font-weight: normal;
+  text-align: left;
+}
+table.dataTable.display tbody tr:hover {
+  background-color: #727272;
+  color: #ccc;
+}
+
+#tblEnr tbody td {
+  font-size: 14px;
+  text-align: center;
+  vertical-align: middle;
+}
+/* 如果你有序列欄位，給它等寬字型較好閱讀（視欄位實際順序調整 nth-child） */
+.seq-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  letter-spacing: .02em;
+}
+
+/* 小螢幕時略縮欄位寬度（可調整） */
+@media (max-width: 1200px) {
+  table.dataTable td.long-text { max-width: 180px; }
+}
+/* --- Search bar --- */
+.dt-container .dt-search label {
+  align-items: center;
+  font-weight: 600 !important;
+  color: #000000 !important;
+  font-family: "font1" !important;
+  font-size: 20px !important;
+  line-height: 1.2 !important;
+  margin-right: 5px;
+}
+.dt-container .dt-search input.dt-input {
+  border: 2px solid #727272!important;
+  border-radius: 25px !important;
+  padding: 6px 14px !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: #fff !important;
+  color: #222 !important;
+  font-size: 14px !important;
+  transition: border-color .2s ease, box-shadow .2s ease;
+  margin-bottom: 0px;
+}
+.dt-container .dt-search input.dt-input:hover {
+  border-color: #9b9b9b !important;
+}
+.dt-container .dt-search input.dt-input:focus {
+  border-color: #9b9b9b !important;
+  box-shadow: 0 0 6px #585858 !important;
+}
+
+/* --- kmer-filters --- */
+/* 主題色：要改整體色系只要調這些變數 */
+:root{
+  --pill-bg: #b67e7e;      /* 膠囊背景 */
+  --pill-fg: #ffffff;      /* 膠囊文字 */
+  --pill-hover: #a66f6f;   /* 膠囊 hover */
+  --accent: #b33bf1;       /* checkbox 色 */
+  --toggle-on: #3bb54a;    /* 開關 ON */
+  --toggle-off: #616161;      /* 開關 OFF */
+}
+
+/* ---- 篩選列（開關 + 標題）---- */
+/* 開關 + 標題列（標題置中） */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 6px;
+}
+.kmer-title{
+  margin: 0;
+  text-align: center;
+  font: 700 24px/1.2 system-ui, sans-serif;
+  color: #333333;
+}
+/* filters */
+.secondary-filter-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+#kmer-filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items:flex-start;   /* 單列內項目頂端對齊 */
+  align-content:flex-start; /* 多列整體不要在容器中置中，貼齊上緣 */
+  gap: 18px;
+}
+#Reference-filters{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items:flex-start;
+  align-content:flex-start;
+  gap: 18px;
+}
+#Strength-filters{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items:flex-start;
+  align-content:flex-start;
+  gap: 18px;
+}
+/* 膠囊 */
+.kmer-pill{
+  display:inline-flex; align-items:center; gap:8px; padding:10px 16px;
+  background:#FF9E1B; color:#fff; border-radius:14px;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);
+  white-space:nowrap; cursor:pointer;
+}
+.kmer-pill input{ margin:0; accent-color:#b33bf1; transform:scale(1.05); }
+/* iOS 風格開關（如果你用 CSS 變數，記得有預設值） */
+.switch{ position:relative; display:inline-block; width:54px; height:28px; }
+.switch input{ display:none; }
+.slider{ position:absolute; inset:0; background:var(--toggle-off, #ccc); border-radius:999px; transition:.2s; }
+.slider:before{ content:""; position:absolute; left:3px; top:3px; width:22px; height:22px; background:#fff; border-radius:50%; transition:.2s; }
+.switch input:checked + .slider{ background:var(--toggle-on, #3bb54a); }
+.switch input:checked + .slider:before{ transform:translateX(26px); }
+[hidden]{ display:none !important; }
+.secondary-filter-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+/* ---- Summit 按鈕 ---- */
+.summit-btn{
+  font-family:"font1", system-ui, sans-serif;
+  display:flex; padding:6px 12px; margin-top:10px; margin:auto;
+  justify-content:center; border-radius:999px;
+  color:#000; background-color:#62ffa4; font-size:20px;
+  border:1px solid #49bd79; transition:background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.summit-btn:hover{
+  cursor:pointer; color:#303030; border:1px solid #49bd79; background-color:#49bd79;
+}
+.summit-btn:active{
+  cursor:pointer; color:#303030; border:1px solid #338555; background-color:#338555;
+}
+
+/* 低動作偏好：關閉動畫 */
+@media (prefers-reduced-motion: reduce){
+  .slider, .kmer-pill, .summit-btn{ transition:none !important; }
+}
+/* ======  plot  ====== */
+#epitope-plot {
+  display: flex;
+  justify-content: center; /* 水平置中 */
+  align-items: center;     /* 垂直置中（可選） */
+  margin: 0 auto;          /* 外層也置中 */
+  max-width: 1200px;       /* 圖表最大寬度 */
+}
+#epitope-plot svg {
+  display: block;
+  margin: 0 auto;          /* SVG 本身也置中 */
+}
+/* 圖區塊標題 + 按鈕排版 */
+.plot-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:6px;
+}
+/* 次要按鈕（重疊開關） */
+.outline-btn{
+  font-family: "font1", system-ui, sans-serif;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:14px;
+  line-height:1;
+  color:#333;
+  background:#fff;
+  border:1px solid #bbb;
+  transition:background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.outline-btn:hover{ cursor:pointer; background:#f3f3f3; }
+.outline-btn.active{ color:#0a642a; border-color:#49bd79; background:#e7f9ee; }

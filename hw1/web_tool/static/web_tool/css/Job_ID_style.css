@@ -1,0 +1,136 @@
+@font-face {
+  font-family: "font1";
+  src: url("../fonts/Ubuntu-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+html, body { margin: 0; padding: 0; }
+body {
+  background-color: #22293C;
+  color: #e5e7eb;
+  font-family: "font1";
+}
+
+/* 標題區 */
+#title-block { padding: 16px 0 0; }
+h1.title {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 40px;
+  color: #FF9E1B;
+  margin: 12px 0 0;
+}
+h1.title a { color: inherit; text-decoration: none; }
+h1.title a:hover { text-decoration: none; }
+
+/* 主內容容器 */
+.wrap {
+  max-width: 1100px;
+  margin: 150px auto;
+  padding: 24px 20px 48px;
+}
+
+/* 搜尋標題 */
+.search-title {
+  font-size: 40px;
+  font-weight: 900;
+  margin: 10px 0 12px;
+  text-align: center;
+  background: linear-gradient(90deg, #5cf8f8 0%, #5cf8f8 40%, #dd76ff 60%, #dd76ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 搜尋列 */
+.search-bar-full {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.search-bar-input {
+  background-color: #8a8888;
+  flex: 1;
+  padding: 14px 18px;
+  border-radius: 40px;
+  font-size: 18px;
+  box-sizing: border-box;
+  border: 1px solid #aaa;
+  color: #ffffff;
+  outline: none;
+}
+.search-bar-input::placeholder { color: #eee; opacity: .9; }
+.search-bar-input:focus {
+    font-family: "font1";
+    border: 0.5px solid #a3a3a3;
+    box-shadow: 0 0 8px #a3a3a3;
+    background-color: #292929;
+}
+.search-bar-btn {
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  border: 0;
+  background: #0de1fd;
+  color: #616161;
+  cursor: pointer;
+  transition: transform .05s ease-in-out, filter .15s ease;
+}
+.search-bar-btn:hover { filter: brightness(1.1); }
+.search-bar-btn:active { transform: translateY(1px); }
+
+/* 結果區（搜尋後顯示） */
+#resultPanel { display: none; text-align: center; margin-top: 24px; }
+.id-line {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 8px 0 18px;
+  text-decoration: none;
+}
+.your-id { font-size: 28px; font-weight: 800; color: #e5e7eb; }
+.job-id {
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffffff;                 /* 藍色可點 */
+  text-decoration: none;
+  font-family: "font1";
+}
+
+/* 分頁按鈕列 */
+.link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.pill {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 2px solid currentColor;
+  text-decoration: none;
+  font-weight: 700;
+  transition: transform .05s ease, filter .15s ease;
+}
+.pill:active { transform: translateY(1px); }
+
+/* 色票（延續你的風格） */
+.pill-orange { color: #f59e0b; background: rgba(245, 158, 11, .08); }
+.pill-blue   { color: #3b82f6; background: rgba(59, 130, 246, .08); }
+.pill-green  { color: #10b981; background: rgba(16, 185, 129, .08); }
+.pill-cyan   { color: #06b6d4; background: rgba(6, 182, 212, .08); }
+
+.pill-orange:hover { box-shadow: 0 0px 6px #f59e0b, 0 0 12px #fbbf24; filter: brightness(1.1); }
+.pill-blue:hover   { box-shadow: 0 0px 6px #3b82f6, 0 0 12px #1e9aff; filter: brightness(1.1); }
+.pill-green:hover  { box-shadow: 0 0px 6px #10b981, 0 0 12px #13d695; filter: brightness(1.1); }
+.pill-cyan:hover   { box-shadow: 0 0px 6px #06b6d4, 0 0 12px #07d0f3; filter: brightness(1.1); }
+/* RWD */
+@media (max-width: 640px) {
+  .search-title { font-size: 36px; }
+  .your-id, .job-id { font-size: 22px; }
+}

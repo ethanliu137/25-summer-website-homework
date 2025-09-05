@@ -1,0 +1,110 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>IEDB Results – Perfect Table</title>
+
+  <!-- DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.0.2/css/buttons.dataTables.min.css">
+  <link rel="stylesheet" href="{% static 'web_tool/css/Perfect_Table_style.css' %}">
+
+</head>
+<body>
+  <div>
+    <h1 class="title">
+      <a href="/">MME Web Tool</a>
+    </h1>
+  </div>
+  <div class="container">
+    
+    <h2 class="logo">Perfect Match Result</h2>
+
+    <!-- ★ 套用你的橘色皮膚選擇器：外層用 #resultArea 包住 table -->
+    <div id="resultArea">
+      <table id="resultsTable" class="display" style="width:100%"></table>
+    </div>
+
+    <p class="muted" id="hint" style="display:none;">
+      未找到快取資料。若你沒有 /iedb/run/ API，就先到首頁執行一次分析；或把 main.js 儲存的 localStorage 關掉清除動作。
+    </p>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.2/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.html5.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.print.min.js"></script>
+
+  <script>
+   document.addEventListener("DOMContentLoaded", async () => {
+    // 讀快取
+    let columns = [], records = [];
+    const cached = localStorage.getItem("lastResult");
+    if (cached) {
+      try {
+        const payload = JSON.parse(cached); // {columns, records 或 rows}
+        columns = payload?.columns || [];
+        if (Array.isArray(payload?.records)) {
+          records = payload.records;
+        } else if (Array.isArray(payload?.rows)) {
+          const cols = columns;
+          records = payload.rows.map(r => {
+            const o = {}; cols.forEach((c,i)=>o[c]=r[i]); return o;
+          });
+        }
+      } catch (e) {}
+    }
+
+    // 沒快取就打 API
+    if (!columns.length) {
+      try {
+        const res = await fetch("{% url 'iedb_from_sqlite' %}?limit=2000", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          columns = data?.columns || [];
+          if (Array.isArray(data?.data)) {
+            records = data.data.map(row => {
+              const o = {}; columns.forEach((c,i)=>o[c]=row[i]); return o;
+            });
+          } else if (Array.isArray(data?.records)) {
+            records = data.records;
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (!columns.length) {
+      const hint = document.getElementById('hint');
+      if (hint) hint.style.display = 'block';
+      return;
+    }
+
+    const dtColumns = columns.map(c => ({ title: c, data: c }));
+
+    // ✅ 只使用 DataTables 內建搜尋欄（右上角）
+    $('#resultsTable').DataTable({
+      data: records,
+      columns: dtColumns,
+      searching: true,          // 開啟搜尋
+      stateSave: true,
+      stateDuration: 0,
+      pageLength: 10,
+      lengthMenu: [10, 25, 50, 100],
+      scrollX: true,
+      scrollCollapse: true,
+      autoWidth: false,
+      deferRender: true,
+      responsive: true,
+      dom: 'Bfrtip',            // 包含 f（filter）→ 顯示內建搜尋欄
+      buttons: ['csv'],
+      initComplete: function () {
+        this.api().columns.adjust();
+      }
+    });
+  });
+  </script>
+</body>
+</html>

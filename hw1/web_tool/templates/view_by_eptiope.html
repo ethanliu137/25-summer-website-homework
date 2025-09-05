@@ -1,0 +1,95 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>View by Epitope</title>
+
+  <link rel="stylesheet" href="https://cdn.datatables.net/2.0.7/css/dataTables.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.0.2/css/buttons.dataTables.min.css">
+  <link rel="stylesheet" href="{% static 'web_tool/css/Perfect_Table_style.css' %}">
+  <style>
+    .dataTables_scrollHeadInner, .dataTables_scrollHeadInner table { width: 100% !important; }
+  </style>
+</head>
+<body>
+  <div>
+    <h1 class="title">
+      <a href="/">MME Web Tool</a>
+    </h1>
+  </div>
+  <div class="container">
+    <h2 class="logo">View by Epitope</h2>
+    <div class="page-center">
+      <div id="multiSearchBar" style="margin:10px 0 16px; display:flex; flex-direction:column; gap:10px;">
+        <div class="search-bar">
+          <input id="multiSearchInput" class="search-input" placeholder="Enter epitope">
+        </div>
+        <div class="search-btns">
+          <button id="multiSearchBtn" class="search-btn">search</button>
+          <button id="clearSearchBtn" class="search-btn">delete</button>
+        </div>
+      </div>
+
+      <div id="resultArea">
+        <table id="resultsTable" class="display" style="width:100%"></table>
+      </div>
+  </div>
+
+  <!-- jQuery + DataTables -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/2.0.7/js/dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.2/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.0.2/js/buttons.html5.min.js"></script>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const $table = $('#resultsTable');
+
+    // 允許用 URL 參數調整筆數：/view-by-epitope/?limit=5000
+    const urlParams = new URLSearchParams(location.search);
+    const limit = (urlParams.get('limit') || '5000').trim();
+
+    async function fetchData() {
+      const params = new URLSearchParams();
+      if (limit) params.set('limit', limit);
+      // 🔻 若你的 URL name 不同，改這行
+      const res = await fetch("{% url 'view_by_epitope_data' %}?" + params.toString(), { cache: 'no-store' });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    }
+
+    try {
+      const payload = await fetchData();
+      const cols = (payload.columns || []).map((c, i) => ({ title: c, data: i }));
+      const data = payload.data || [];
+
+      const dt = $table.DataTable({
+        data,
+        columns: cols,
+        // ✅ 只用 DataTables 內建搜尋欄
+        searching: true,
+        ordering: true,
+        stateSave: true,
+        stateDuration: 0,
+        pageLength: 10,
+        lengthMenu: [10, 25, 50, 100],
+        responsive: true,
+        autoWidth: false,
+        deferRender: true,
+        // 需要時才會顯示橫向卷軸；夠寬時不會出現
+        scrollX: true,
+        scrollCollapse: true,
+        dom: 'Bfrtip',     // 含 f → 顯示右上角搜尋欄
+        buttons: ['csv'],
+        initComplete: function () {
+          this.api().columns.adjust();
+        }
+      });
+    } catch (e) {
+      alert('載入失敗：' + (e.message || e));
+    }
+  });
+  </script>
+</body>
+</html>
