@@ -148,8 +148,9 @@
             <div id="Strength-filters" hidden></div>
           </div>
         </div>
-
-      <button id="applyKmerBtn" type="button" class="summit-btn">Summit</button>
+        
+        <button id="applyKmerBtn" type="button" class="summit-btn">Summit</button>
+        
     </div>
 
     <!-- 表 5：Epitope Plot Detail -->
@@ -322,15 +323,9 @@
           const lab = d3.select(this);
           lab.append('input')
             .attr('type','checkbox')
+            .attr('name','kmer')        // <-- submit 時可用 name 抓值
             .attr('value', d.key)
-            .property('checked', selectedKmers.has(d.key))
-            .on('change', function(){
-              if (this.checked) selectedKmers.add(d.key);
-              else {
-                selectedKmers.delete(d.key);
-                if (selectedKmers.size === 0) { this.checked = true; selectedKmers.add(d.key); }
-              }
-            });
+            .property('checked', selectedKmers.has(d.key)); // 只初始化，不改全域狀態
           lab.append('span').text(d.label);
         });
       }
@@ -405,13 +400,102 @@
         })();
       
       // ---------- Evidence UI & 篩選 ----------
-      const Evidence_CHOICES = [
+      // 依表三產生 strong / weak IRI 集合
+      function mapRelationshipToTag(v) {
+        const s = String(v || '').toLowerCase();
+        // 兼容底線/空白/連字符
+        if (s.includes('iedb') && s.includes('perfect') && (s.includes('match') || s.includes('perfect_match'))) return 'strong_connect';
+        if (s.includes('partial') && s.includes('overlap')) return 'weak_connect';
+        return 'none_protein';
+      }
+
+      function buildEvidenceIriSets() {
+        const strong = new Set(), weak = new Set();
+        for (const r of OVERLAP_RAW || []) {
+          const relKey = Object.keys(r).find(k => String(k).replace(/\s+|_/g,'').toLowerCase() === 'positionrelationship');
+          const tag = mapRelationshipToTag(relKey ? r[relKey] : r.position_relationship);
+
+          const iris = toIriList(overlapIriKey ? r[overlapIriKey] : (r.IEDB_IRI ?? r['IEDB IRI'] ?? r.iri));
+          for (const raw of iris) {
+            const id = normalizeIri(raw);
+            if (!id) continue;
+            if (tag === 'strong_connect') strong.add(id);
+            else if (tag === 'weak_connect') weak.add(id);
+          }
+        }
+        return { strong, weak };
+      }
+      const { strong: strongIRIs, weak: weakIRIs } = buildEvidenceIriSets();
+
+
+      // （工具）在物件 key 中「不分大小寫／忽略底線與空白」找目標欄位
+      function findKeyCaseInsensitive(obj, wanted) {
+        if (!obj) return null;
+        const norm = String(wanted).replace(/\s+|_/g, '').toLowerCase();
+        for (const k of Object.keys(obj)) {
+          const kn = k.replace(/\s+|_/g, '').toLowerCase();
+          if (kn === norm) return k;
+        }
+        return null;
+      }
+
+      // 1) 找出 Overlap 表的 position_relationship 欄位 index（用在 DataTables 過濾／列樣式）
+      function getColIndexByHeader(tableEl, headerText) {
+        const normWanted = String(headerText).replace(/\s+|_/g,'').toLowerCase();
+        const ths = tableEl ? tableEl.querySelectorAll('thead th') : [];
+        for (let i = 0; i < ths.length; i++) {
+          const normHave = String(ths[i].textContent || '')
+            .trim().replace(/\s+|_/g,'').toLowerCase();
+          if (normHave === normWanted) return i;
+        }
+        return -1;
+      }
+      const overlapEl   = document.getElementById('tblOverlap');
+      const POS_REL_IDX = overlapEl ? getColIndexByHeader(overlapEl, 'position_relationship') : -1;
+
+      // 2) Evidence 單選集合 —— 預設為 none（= 不過濾）
+      const Evidence_CHOICES   = [
         { label: "strong", key: "strong_connect" },
         { label: "weak",   key: "weak_connect"   },
-        { label: "none",   key: "none_protein"   },
+        { label: "all",   key: "none_protein"   },
       ];
+      const selectedEvidence   = new Set(["none_protein"]); // 預設選 none
+      let   evidencePillsBuilt = false;
 
+      // 3) DataTables 的 Overlap 過濾：none 或空集合 → 不過濾；否則依 tag 比對
+      $.fn.dataTable.ext.search.push(function (settings, data) {
+        if (settings.nTable.id !== 'tblOverlap') return true;
+
+        // none / 無選擇 => 不過濾
+        if (selectedEvidence.size === 0 || selectedEvidence.has('none_protein')) return true;
+        if (POS_REL_IDX < 0) return true;
+
+        const tag = mapRelationshipToTag(data[POS_REL_IDX]);
+        return selectedEvidence.has(tag);
+      });
+
+      // 4) Overlap 表列樣式（強/弱/none）
+      function decorateOverlapRows() {
+        if (!window.t2 || POS_REL_IDX < 0) return;
+        window.t2.rows({ page: 'current' }).every(function () {
+          const tag = mapRelationshipToTag(this.data()[POS_REL_IDX]);
+          const tr  = this.node();
+          tr.dataset.evidence = tag;
+          tr.classList.toggle('row-strong', tag === 'strong_connect');
+          tr.classList.toggle('row-weak',   tag === 'weak_connect');
+          tr.classList.toggle('row-none',   tag === 'none_protein');
+        });
+      }
+      if (window.t2) {
+        window.t2.on('draw', decorateOverlapRows);
+        decorateOverlapRows();
+      }
+
+      // 5) 建立 Evidence pills（單選 + 預設 none 勾起來）
       function buildEvidencePills() {
+        if (evidencePillsBuilt) return;
+        evidencePillsBuilt = true;
+
         const wrap = d3.select("#Strength-filters");
         if (wrap.empty()) return;
 
@@ -424,13 +508,49 @@
         items.each(function(d) {
           const lab = d3.select(this);
           lab.append("input")
-            .attr("type", "checkbox")
-            .attr("value", d.key);
+            .attr("type", "radio")        // 單選
+            .attr("name", "evidence")     // submit 時可用 name 抓值
+            .attr("value", d.key)
+            .property("checked", selectedEvidence.has(d.key)); // 初始化，不改全域狀態
           lab.append("span").text(d.label);
         });
       }
+      // 6) toggle：顯示/隱藏 pills；關閉時恢復 none（全顯示）
+      (function initEvidenceToggle(){
+        const toggle = document.getElementById('EvidenceToggle');
+        const panel  = document.getElementById('Strength-filters');
+        if (!toggle || !panel) return;
 
+        // 依你的 HTML：預設 hidden；若想一開始就開啟可改這兩行
+        // toggle.checked = true; panel.hidden = false;
+
+        toggle.addEventListener('change', () => {
+          const on = toggle.checked;
+          panel.hidden = !on;
+
+          if (on) {
+            if (!window.d3) { console.warn('d3 未載入，Evidence pills 無法建立'); return; }
+            buildEvidencePills(); // 會自動讓 none 勾起來
+          } else {
+            // 關閉：強制回到 none（全顯示）
+            selectedEvidence.clear();
+            selectedEvidence.add('none_protein');
+            panel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+              cb.checked = (cb.value === 'none_protein');
+            });
+            if (window.t2) { window.t2.draw(); decorateOverlapRows(); }
+            applyFilters();
+          }
+        });
+      })();
+
+      // 7) 如果不靠 toggle，也可直接建（保持與你原本行為一致）
       buildEvidencePills();
+
+      // ---------- applyFilters() 內的 Evidence 篩選說明 ----------
+      // 你下方的 applyFilters 已呼叫 findKeyCaseInsensitive 與 mapRelationshipToTag：
+      //   - 當 selectedEvidence 含 'none_protein'（或 size=0）時，不過濾 ENR（= 全部）
+      //   - 當選 strong/weak 時，只保留對應 tag 的 ENR
 
       // ---------- Overlap only（獨立事件） ----------
       let overlapOnly = false;
@@ -470,7 +590,7 @@
 
           const x = d3.scaleLinear().domain([0, maxPos * 1.02]).range([0, innerW]);
 
-          // 不重疊堆疊（IEDB）
+          // 不重疊（IEDB）
           const sorted = [...(iedbList||[])].sort((a,b)=>a.start-b.start);
           const levelEnds = [];
           sorted.forEach(d=>{
@@ -564,47 +684,89 @@
         const rows = (enrFiltered||[]).map(r => cols.map(c => (r[c] ?? r[c?.toLowerCase?.()] ?? "")));
         window.t4.clear().rows.add(rows).draw();
       }
+      
+      function readFiltersFromUI() {
+        // k-mer (多選)
+        const picked = new Set(
+          Array.from(document.querySelectorAll('input[name="kmer"]:checked')).map(el => el.value)
+        );
+        if (picked.size) selectedKmers = picked;
+        else {
+          // 至少保留一個，避免全空造成結果永遠為空
+          selectedKmers = new Set(KMER_CHOICES.map(d => d.key));
+        }
+
+        // Evidence (單選)
+        const ev = document.querySelector('input[name="evidence"]:checked');
+        selectedEvidence.clear();
+        selectedEvidence.add(ev ? ev.value : 'none_protein');
+      }
 
       // ---------- 單一重繪入口 ----------
+      // 你原本的函式：會處理 k-mer → (新) evidence → overlapOnly → 繪圖/表
       function applyFilters(){
-        // 1) 先拿目前 Perfect 子集（照你的現有條件來算，之後有 ref/evidence 就加在這裡）
+        // 1) 先做 k-mer 篩選
         const enrByKmer = filterENRByKmer(window.enrRows || []);
-        currentPerfectRows = enrByKmer; // ⭐ 記住現在的「最新狀態」
 
-        // 2) IEDB（紅條）：若 overlapOnly 開，就先依 IRI 集合過濾；否則原樣
-        const iedbForPlot = filterIedbByOverlapIri(window.iedbData || [], window.overlapIriSet);
+        // 2) Evidence 單選（'strong_connect' | 'weak_connect' | 'none_protein'）
+        const picked = (selectedEvidence && selectedEvidence.size > 0)
+          ? [...selectedEvidence][0]
+          : 'none_protein';
 
+        // 2a) 先縮小允許的 IEDB（紅條）
+        let iedbAllowed = window.iedbData || [];
+        if (picked === 'strong_connect') {
+          iedbAllowed = iedbAllowed.filter(d => d.iriNorm && strongIRIs.has(d.iriNorm));
+        } else if (picked === 'weak_connect') {
+          iedbAllowed = iedbAllowed.filter(d => d.iriNorm && weakIRIs.has(d.iriNorm));
+        }
+
+        // 2b) 若開啟「只看 overlap」就再用 IRI 集合過濾一次
+        const iedbForPlot = filterIedbByOverlapIri(iedbAllowed, window.overlapIriSet);
+
+        // 3) 用區間交集把 ENR（黑條）依 Evidence 再縮小（none 則不縮）
+        let enrAfterEvidence = enrByKmer;
+        if (picked !== 'none_protein') {
+          enrAfterEvidence = enrByKmer.filter(r => rowOverlapsAllowedIedb(r, iedbForPlot));
+        }
+        currentPerfectRows = enrAfterEvidence;
+
+        // >>> 這裡是關鍵 <<< 
+        // 如果「k-mer + Evidence」交集後，黑條空了，就整張圖與表都清空（你要的 7-mer+strong 不顯示任何圖）
+        if (picked !== 'none_protein' && (!currentPerfectRows || currentPerfectRows.length === 0)) {
+          renderEpitopePlot([], []);
+          redrawEnrTable([]);
+          return;
+        }
+
+        // 4) 若「只看 overlap」打開，再檢查一次交集；沒有就清空
         if (overlapOnly) {
-          // 3) 只看 overlap：檢查是否有任何交集
-          const overlappedPerfect = (currentPerfectRows || [])
-            .filter(r => rowOverlapsAllowedIedb(r, iedbForPlot));
-
-          const hasOverlap = (iedbForPlot && iedbForPlot.length > 0) &&
-                            (overlappedPerfect && overlappedPerfect.length > 0);
-
+          const overlappedPerfect = (currentPerfectRows || []).filter(r => rowOverlapsAllowedIedb(r, iedbForPlot));
+          const hasOverlap = (iedbForPlot && iedbForPlot.length > 0) && (overlappedPerfect && overlappedPerfect.length > 0);
           if (!hasOverlap) {
-            // ⭐ 沒有 overlap → 只留座標軸（空陣列），表格清空
             renderEpitopePlot([], []);
             redrawEnrTable([]);
             return;
           }
-
-          // 有 overlap → 只畫有交集的部分
           renderEpitopePlot(iedbForPlot, buildPerfectForPlot(overlappedPerfect));
           redrawEnrTable(overlappedPerfect);
           return;
         }
 
-        // 4) OverlapOnly 關閉 → 正常畫：紅條(依 IRI 規則) + 目前 Perfect 子集
+        // 5) 一般路徑：畫（可能已縮小過的）紅條 + 黑條
         renderEpitopePlot(iedbForPlot, buildPerfectForPlot(currentPerfectRows));
         redrawEnrTable(currentPerfectRows);
       }
 
       // ---------- 綁事件 ----------
       // Summit
-      document.getElementById('applyKmerBtn')?.addEventListener('click', () => {
-        applyFilters();
+      document.getElementById('applyKmerBtn')?.addEventListener('click', (e) => {
+        e.preventDefault?.();
+        readFiltersFromUI();  // 先把 UI 選擇同步到 selectedKmers / selectedEvidence
+        applyFilters();       // 再跑你的篩選與重繪
+        window.t2?.draw();    // 讓 Overlap DataTable 依 Evidence 重算（ext.search 會用到 selectedEvidence）
       });
+
 
       // Overlap only
       (function bindOverlapBtn(){

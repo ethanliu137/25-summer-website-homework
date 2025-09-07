@@ -343,7 +343,7 @@ table.dataTable.display tbody tr:hover {
 }
 /* 次要按鈕（重疊開關） */
 .outline-btn{
-  font-family: "font1", system-ui, sans-serif;
+  font-family: "font1";
   display:inline-flex;
   align-items:center;
   gap:8px;
